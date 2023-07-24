@@ -86,12 +86,21 @@ struct tf32 {
     //#endif
 };
 
+//only defines conversion to/from uint8
+struct bit4x2 {
+    uint8_t data;
+
+    operator uint8_t() const { return data; }
+    bit4x2(uint8_t val) { data = val; }
+};
+
 /// @brief Used to check if the type is xetla internal data type
 /// @tparam T is the data type
 template <typename T>
 struct is_internal_type {
     static constexpr bool value = std::is_same<remove_const_t<T>, bf16>::value
-            || std::is_same<remove_const_t<T>, tf32>::value;
+            || std::is_same<remove_const_t<T>, tf32>::value
+            || std::is_same<remove_const_t<T>, bit4x2>::value;
 };
 
 /// @brief Set the native data type of T
@@ -111,6 +120,11 @@ struct native_type<bf16> {
 template <>
 struct native_type<tf32> {
     using type = sycl::ext::intel::experimental::esimd::tfloat32;
+};
+
+template <>
+struct native_type<bit4x2> {
+    using type = uint8_t;
 };
 
 /// @brief Return the native data type of T

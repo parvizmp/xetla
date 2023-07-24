@@ -57,6 +57,42 @@ struct compute_policy_default_xmx<compute_attr_, perf_tuning_knob_,
             "mat_a x need to match with mat_b y");
 };
 
+template <typename compute_attr_, typename perf_tuning_knob_,
+        typename dtype_scale_, typename dtype_zero_pt_, typename dtype_table_,
+        int dequant_s_, gpu_arch arch_tag_ = gpu_arch::Xe>
+struct compute_policy_dequantize_matB_xmx {};
+
+template <typename compute_attr_, typename perf_tuning_knob_,
+        typename dtype_scale_, typename dtype_zero_pt_, typename dtype_table_,
+        int dequant_s_>
+struct compute_policy_dequantize_matB_xmx<compute_attr_, perf_tuning_knob_,
+        dtype_scale_, dtype_zero_pt_, dtype_table_, dequant_s_, gpu_arch::Xe> {
+    using compute_attr = compute_attr_;
+    using perf_tuning_knob = perf_tuning_knob_;
+    static constexpr int k_stride = perf_tuning_knob::accum_step;
+    static constexpr int stages = perf_tuning_knob::stages;
+    static constexpr int sync_freq = perf_tuning_knob::sync_freq;
+    static constexpr gpu_arch arch_tag = gpu_arch::Xe;
+    using dtype_mma_acc = typename compute_attr::dtype_acc;
+    using dtype_mma_a = typename compute_attr::dtype_a;
+    using dtype_mma_b = typename compute_attr::dtype_b;
+
+    static constexpr uint32_t block_bytes_x_a = 32;
+    static constexpr uint32_t block_size_y_a = 16;
+
+    static constexpr uint32_t block_size_x_b = 16;
+    static constexpr uint32_t block_bytes_y_b = 32;
+    static_assert(block_bytes_x_a == block_bytes_y_b,
+            "mat_a x need to match with mat_b y");
+
+    static constexpr uint32_t dequant_s = dequant_s_;
+    static_assert((dequant_s % (32 / sizeof(dtype_mma_b))) == 0,
+            "dequant_s should be a multiply of 32B");
+    using dtype_scale = dtype_scale_;
+    using dtype_table = dtype_table_;
+    using dtype_zero_pt = dtype_zero_pt_;
+};
+
 /// @brief Compute policy for fpu engine.
 /// @tparam compute_attr_ Is compute-related attributes.
 /// @tparam perf_tuning_knob_ Is performance-related knobs.

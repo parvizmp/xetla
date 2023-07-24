@@ -28,6 +28,7 @@
 #include "group/brgemm/compute_policy.hpp"
 #include "group/brgemm/impl/default_fpu_xe.hpp"
 #include "group/brgemm/impl/default_xmx_xe.hpp"
+#include "group/brgemm/impl/dequantize_matB_xmx_xe.hpp"
 #include "group/brgemm/impl/pre_processing_xe.hpp"
 #include "group/brgemm/impl/selector_xe.hpp"
 #include "group/tile_shape.hpp"

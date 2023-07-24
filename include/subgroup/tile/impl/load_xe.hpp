@@ -200,10 +200,11 @@ tile_load(tile_t &tile, payload_t &payload) {
                               != 0))
                     || (block_size_y > ld_blk_size_y_limit)
             ? 1
-            : ((((tile_size_x % elems_per_CL) == 0)
-                       && ((elems_per_CL % block_size_x) == 0))
-                            ? elems_per_CL / block_size_x
-                            : 1);
+            : (((tile_size_x % elems_per_CL) == 0)
+                            ? (((elems_per_CL % block_size_x) == 0)
+                                            ? elems_per_CL / block_size_x
+                                            : 1)
+                            : (tile_size_x / block_size_x));
 
     static_assert(reg_transpose || mem_transpose
                     || (!mem_transpose
@@ -247,7 +248,9 @@ tile_load(tile_t &tile, payload_t &payload) {
             constexpr uint32_t ld_blk_height = reg_transpose
                     ? detail::getNextPowerOf2<ld_blk_size_y>()
                     : ld_blk_size_y;
-            xetla_vector<dtype, ld_blk_height * block_size_x * arr_len> reg_tmp;
+            constexpr uint32_t tmp_size
+                    = ld_blk_height * block_size_x * arr_len;
+            xetla_vector<dtype, tmp_size> reg_tmp;
 #pragma unroll
             for (int ii = 0; ii < block_size_y / ld_blk_size_y; ++ii) {
                 constexpr uint32_t load_elems
@@ -267,7 +270,7 @@ tile_load(tile_t &tile, payload_t &payload) {
                                       .xetla_select<block_size_x, 1,
                                               ld_blk_size_y, 1>(0, 0);
                 } else {
-                    reg_blk = reg_tmp;
+                    reg_blk.xetla_select<tmp_size, 1>(ii * tmp_size) = reg_tmp;
                 }
 
                 if constexpr (mem_transpose) {
@@ -332,7 +335,9 @@ tile_load(tile_t &tile, payload_t &payload) {
             constexpr uint32_t ld_blk_height = reg_transpose
                     ? detail::getNextPowerOf2<remained_ld_blk_size_y>()
                     : remained_ld_blk_size_y;
-            xetla_vector<dtype, ld_blk_height * block_size_x * arr_len> reg_tmp;
+            constexpr uint32_t tmp_size
+                    = ld_blk_height * block_size_x * arr_len;
+            xetla_vector<dtype, tmp_size> reg_tmp;
 #pragma unroll
             for (int ii = 0; ii < remained_size_y / remained_ld_blk_size_y;
                     ++ii) {
@@ -353,7 +358,7 @@ tile_load(tile_t &tile, payload_t &payload) {
                                       .xetla_select<block_size_x, 1,
                                               remained_ld_blk_size_y, 1>(0, 0);
                 } else {
-                    reg_blk = reg_tmp;
+                    reg_blk.xetla_select<tmp_size, 1>(ii * tmp_size) = reg_tmp;
                 }
                 if constexpr (mem_transpose) {
                     xetla_update_tdesc_offsetx(tdesc.xetla_format<uint32_t>(),
