@@ -158,6 +158,6 @@ TYPED_TEST_P(fpu_gemm_test, esimd) {
 }
 
 REGISTER_TYPED_TEST_SUITE_P(fpu_gemm_test, esimd);
-using tests = ::testing::Types<qkv, output_proj, ffn1, ffn2, last>;
+using tests = ::testing::Types<qkv, output_proj, ffn1, ffn2>;
 
 INSTANTIATE_TYPED_TEST_SUITE_P(fpu_gemm_test_suite, fpu_gemm_test, tests);

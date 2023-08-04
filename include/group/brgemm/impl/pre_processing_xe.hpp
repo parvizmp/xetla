@@ -45,8 +45,7 @@ public:
     template <typename matA_acc_t, typename matB_acc_t, typename matA_t,
             typename matB_t>
     inline KERNEL_FUNC void operator()(matA_acc_t &matA_acc,
-            matB_acc_t &matB_acc, matA_t &matA, matB_t &matB) {
-    }
+            matB_acc_t &matB_acc, matA_t &matA, matB_t &matB) {}
 };
 
 /// @brief Brgemm pre_processing functor with applying relu op to matA. Specialized for Xe architecture.

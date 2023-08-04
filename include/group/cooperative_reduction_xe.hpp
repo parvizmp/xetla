@@ -59,15 +59,22 @@ private:
     // cooperative split, y dir first
     static_assert((num_cooperative_wg & (num_cooperative_wg - 1)) == 0,
             "num_cooperative_wg should be power of 2");
+
+public:
     static constexpr uint32_t coop_num_y
             = gpu::xetla::subgroup::detail::gcd<num_cooperative_wg,
                     sg_tile_m>::value;
-    static constexpr uint32_t coop_num_x = num_cooperative_wg / coop_num_y;
+    static constexpr uint32_t coop_remain_num_x
+            = num_cooperative_wg / coop_num_y;
+    static constexpr bool has_redundant_wg
+            = (coop_remain_num_x * 16) > sg_tile_n;
     static constexpr uint32_t tile_size_y = sg_tile_m / coop_num_y;
-    static constexpr uint32_t tile_size_x = sg_tile_n / coop_num_x;
-    static_assert(tile_size_y * tile_size_x >= 16,
-            "please reduce your num_cooperative_wg to get better compute "
-            "efficiency");
+    static constexpr uint32_t tile_size_x
+            = has_redundant_wg ? 16 : sg_tile_n / coop_remain_num_x;
+    static constexpr uint32_t coop_num_x = sg_tile_n / tile_size_x;
+    static constexpr uint32_t num_reduce_wg = coop_num_x * coop_num_y;
+
+private:
     static constexpr uint32_t src_block_size_x = matAcc_t::block_size_x;
     static constexpr uint32_t src_block_size_y = matAcc_t::block_size_y;
 
@@ -102,8 +109,8 @@ public:
     uint32_t coop_id_x;
     uint32_t coop_id_y;
     inline cooperative_reduce_t(uint32_t coop_id_) : coop_id(coop_id_) {
-        coop_id_x = coop_id % coop_num_x;
-        coop_id_y = coop_id / coop_num_x;
+        coop_id_x = coop_id % coop_remain_num_x;
+        coop_id_y = coop_id / coop_remain_num_x;
     }
 
     /// @brief Cooperative workgroup reduction.
@@ -135,26 +142,31 @@ public:
         nbarrier.init_nbarrier(nbar_id, nbarrier_role::producer_consumer);
         xetla_fence<memory_kind::shared_local>();
         nbarrier.arrive();
-        int32_t slm_load_offset_x
-                = sg_idx * sg_tile_n + coop_id_x * tile_size_x;
-        int32_t slm_load_offset_y
-                = sg_idy * sg_tile_m + coop_id_y * tile_size_y;
-
-        local_ld_tile_t local_ld;
-        local_ld_payload_t local_ld_payload(slm_base, wg_tile_n,
-                wg_tile_m * num_cooperative_wg, wg_tile_n, slm_load_offset_x,
-                slm_load_offset_y);
         nbarrier.wait();
 
-        tile_load(local_ld, local_ld_payload);
-        mat_slice.reg = local_ld.reg;
-#pragma unroll
-        for (int i = 1; i < num_cooperative_wg; i++) {
-            local_ld_payload.template update_tdesc<tdesc_update_dir::y_dir>(
-                    wg_tile_m);
+        if (coop_id_x < coop_num_x) {
+            // nbarrier.init_nbarrier(nbar_id, nbarrier_role::consumer);
+            // nbarrier.arrive();
+            int32_t slm_load_offset_x
+                    = sg_idx * sg_tile_n + coop_id_x * tile_size_x;
+            int32_t slm_load_offset_y
+                    = sg_idy * sg_tile_m + coop_id_y * tile_size_y;
+
+            local_ld_tile_t local_ld;
+            local_ld_payload_t local_ld_payload(slm_base, wg_tile_n,
+                    wg_tile_m * num_cooperative_wg, wg_tile_n,
+                    slm_load_offset_x, slm_load_offset_y);
+
             tile_load(local_ld, local_ld_payload);
-            mat_slice.reg = reduce_helper<reduce_kind, dtype>(
-                    mat_slice.reg, local_ld.reg);
+            mat_slice.reg = local_ld.reg;
+#pragma unroll
+            for (int i = 1; i < num_cooperative_wg; i++) {
+                local_ld_payload.template update_tdesc<tdesc_update_dir::y_dir>(
+                        wg_tile_m);
+                tile_load(local_ld, local_ld_payload);
+                mat_slice.reg = reduce_helper<reduce_kind, dtype>(
+                        mat_slice.reg, local_ld.reg);
+            }
         }
     }
 };
@@ -191,6 +203,7 @@ public:
     using mat_slice_t = matAcc_t;
     static constexpr uint32_t barrier_count = 0;
     static constexpr uint32_t slm_size = 0;
+    static constexpr uint32_t coop_num_x = 1;
     uint32_t coop_id;
     uint32_t coop_id_x;
     uint32_t coop_id_y;

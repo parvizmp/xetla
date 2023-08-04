@@ -339,21 +339,26 @@ public:
         mat_slice_t mat_slice;
         kslicing(g, mat_slice, matAcc, kslicing_slm_base, kslicing_nbarr_base);
 
-        //setup for matC
-        //set up cooperative offset for matC store
-        int32_t coop_offset_n = kslicing.coop_id_x * mat_slice_t::tile_size_x;
-        int32_t coop_offset_m = kslicing.coop_id_y * mat_slice_t::tile_size_y;
-        if constexpr (mem_desc_c_t::is_local) {
-            mem_desc_c.init(args.matC_base, {wg_tile_n, wg_tile_m, wg_tile_n},
-                    {coop_offset_n, coop_offset_m});
-        } else {
-            mem_desc_c.init(args.matC_base,
-                    {boundary_n, boundary_m, args.matC_ld},
-                    {start_n + coop_offset_n, start_m + coop_offset_m});
+        if (kslicing.coop_id_x < kslicing_t::coop_num_x) {
+            //setup for matC
+            //set up cooperative offset for matC store
+            int32_t coop_offset_n
+                    = kslicing.coop_id_x * mat_slice_t::tile_size_x;
+            int32_t coop_offset_m
+                    = kslicing.coop_id_y * mat_slice_t::tile_size_y;
+            if constexpr (mem_desc_c_t::is_local) {
+                mem_desc_c.init(args.matC_base,
+                        {wg_tile_n, wg_tile_m, wg_tile_n},
+                        {coop_offset_n, coop_offset_m});
+            } else {
+                mem_desc_c.init(args.matC_base,
+                        {boundary_n, boundary_m, args.matC_ld},
+                        {start_n + coop_offset_n, start_m + coop_offset_m});
+            }
+            epilogue_t epilogue;
+            epilogue(g, mat_slice, mem_desc_c, args.epilogue_args,
+                    epilogue_slm_base, epilogue_nbarr_base);
         }
-        epilogue_t epilogue;
-        epilogue(g, mat_slice, mem_desc_c, args.epilogue_args,
-                epilogue_slm_base, epilogue_nbarr_base);
     }
 };
 

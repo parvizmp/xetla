@@ -194,6 +194,7 @@ vnni_reverse(T &mat_Acc) {
     constexpr int32_t move_rows = block_size_y / vnni_stride;
     xetla_vector<dtype, tile_elems> rdst;
     static_assert(block_size_y % vnni_stride == 0, "vnni alignement check");
+    if constexpr (tile_size_x == 1) { return; }
 #pragma unroll
     for (int i = 0; i < tile_size_y / block_size_y; i++) {
 #pragma unroll
@@ -272,6 +273,7 @@ vnni_reverse(T &mat_Acc) {
     constexpr int32_t move_rows = block_size_x / vnni_stride;
     xetla_vector<dtype, tile_elems> rdst;
     static_assert(block_size_x % vnni_stride == 0, "vnni alignement check");
+    if constexpr (tile_size_y == 1) { return; }
 #pragma unroll
     for (int i = 0; i < tile_size_y / block_size_y; i++) {
 #pragma unroll
