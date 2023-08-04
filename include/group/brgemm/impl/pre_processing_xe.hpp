@@ -46,8 +46,6 @@ public:
             typename matB_t>
     inline KERNEL_FUNC void operator()(matA_acc_t &matA_acc,
             matB_acc_t &matB_acc, matA_t &matA, matB_t &matB) {
-        subgroup::elemwise_cvt(matA_acc, matA);
-        subgroup::vnni_transform(matB_acc, matB);
     }
 };
 
@@ -71,7 +69,6 @@ public:
             typename matB_t>
     inline KERNEL_FUNC void operator()(matA_acc_t &matA_acc,
             matB_acc_t &matB_acc, matA_t &matA, matB_t &matB) {
-        subgroup::elemwise_cvt(matA_acc, matA);
 
         using data_t = typename matA_acc_t::dtype;
         if constexpr (sizeof(data_t) == 2) {
@@ -89,8 +86,6 @@ public:
                     = matA_acc.reg.xetla_format<int32_t>() < 0;
             matA_acc.reg.xetla_format<int32_t>().xetla_merge(0, mask);
         }
-
-        subgroup::vnni_transform(matB_acc, matB);
     }
 };
 

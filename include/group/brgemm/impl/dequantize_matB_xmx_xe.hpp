@@ -291,8 +291,8 @@ private:
             = subgroup::prefetch_payload_t<dtype_zero_pt, zero_pt_tile_desc_t,
                     mem_layout::row_major, mem_space::global, 1, arch_tag>;
 
-    using tile_mma = subgroup::tile_mma_t<matA_acc_t, matB_acc_t, matAcc_t,
-            matAcc_t, mma_engine::xmx, arch_tag>;
+    using tile_mma = subgroup::tile_mma_t<matAcc_t, matAcc_t, matB_acc_t,
+            matA_acc_t, mma_engine::xmx, arch_tag>;
     static constexpr bool enable_periodic_sync = (sync_freq != 0);
     static constexpr uint32_t barrier_count_x = wg_size_y > 1 ? wg_size_x : 0;
     static constexpr uint32_t barrier_count_y = wg_size_x > 1 ? wg_size_y : 0;
@@ -555,7 +555,7 @@ public:
             subgroup::elemwise_cvt(matA_acc, matA);
             dequantize(matB_acc, matB, scale, zero_pt);
             SW_BARRIER();
-            tile_mma::mma(matA_acc, matB_acc, matAcc, matAcc);
+            tile_mma::mma(matAcc, matAcc, matB_acc, matA_acc);
             SW_BARRIER();
             if constexpr (enable_periodic_sync) {
                 if ((i % sync_freq) == 0) {

@@ -19,10 +19,6 @@
 #include "utils/utils.hpp"
 #include <gtest/gtest.h>
 
-using data_type_a = float;
-using data_type_b = float;
-using data_type_c = float;
-using data_type_acc = float;
 using namespace cl::sycl;
 
 std::string esimd_compile_string
@@ -33,11 +29,14 @@ template <typename T>
 class sgemm_test : public ::testing::Test {};
 TYPED_TEST_SUITE_P(sgemm_test);
 TYPED_TEST_P(sgemm_test, esimd) {
-    gemm_exec<TypeParam, data_type_a, data_type_b, data_type_c, data_type_acc,
-            input_buffer_init, result_validate, sgemm_func>(TypeParam::mat_m,
-            TypeParam::mat_n, TypeParam::mat_k, esimd_compile_string);
+    gemm_exec<TypeParam, typename TypeParam::data_type_a,
+            typename TypeParam::data_type_b, typename TypeParam::data_type_c,
+            typename TypeParam::data_type_acc, input_buffer_init,
+            result_validate, sgemm_func>(TypeParam::mat_m, TypeParam::mat_n,
+            TypeParam::mat_k, esimd_compile_string);
 }
 REGISTER_TYPED_TEST_SUITE_P(sgemm_test, esimd);
 using tests = ::testing::Types<Test1, Test2, Test3, Test4, Test5, Test6, Test7,
-        Test8>;
+        Test8, Test1_fp16, Test2_fp16, Test3_fp16, Test4_fp16, Test5_fp16,
+        Test6_fp16, Test7_fp16, Test8_fp16>;
 INSTANTIATE_TYPED_TEST_SUITE_P(sgemm_test_suite, sgemm_test, tests);

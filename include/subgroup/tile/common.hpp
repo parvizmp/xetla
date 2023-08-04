@@ -198,7 +198,7 @@ __XETLA_API static void reset_tile_desc_core(
 #pragma unroll
     for (int j = 0; j < num_tdesc; j++) {
         constexpr uint8_t block_width
-                = trans ? (size_y / scale_factor) : size_x;
+                = trans ? (size_y / scale_factor) : (size_x / scale_factor);
         constexpr uint8_t block_height = trans ? size_x : size_y;
         constexpr uint32_t block_widthx_widthy_arrlen = (block_width - 1)
                 | ((block_height - 1) << 8) | ((arr_len - 1) << 16);
