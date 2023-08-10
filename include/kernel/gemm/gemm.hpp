@@ -27,3 +27,4 @@
 #include "kernel/gemm/dispatch_policy.hpp"
 #include "kernel/gemm/impl/default_xe.hpp"
 #include "kernel/gemm/impl/kslicing_xe.hpp"
+#include "kernel/gemm/impl/persistent_thread_xe.hpp"
